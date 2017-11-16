@@ -684,14 +684,14 @@ Raven.prototype = {
   },
 
   /**
-     * Override the default HTTP transport mechanism that transmits data
-     * to the Sentry server.
-     *
-     * @param {function} transport Function invoked instead of the default
-     *                             `makeRequest` handler.
-     *
-     * @return {Raven}
-     */
+   * Override the default HTTP transport mechanism that transmits data
+   * to the Sentry server.
+   *
+   * @param {function} transport Function invoked instead of the default
+   *                             `makeRequest` handler.
+   *
+   * @return {Raven}
+   */
   setTransport: function(transport) {
     this._globalOptions.transport = transport;
 
@@ -828,11 +828,11 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture UI breadcrumbs
-     * @param evtName the event name (e.g. "click")
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture UI breadcrumbs
+   * @param evtName the event name (e.g. "click")
+   * @returns {Function}
+   * @private
+   */
   _breadcrumbEventHandler: function(evtName) {
     var self = this;
     return function(evt) {
@@ -867,10 +867,10 @@ Raven.prototype = {
   },
 
   /**
-     * Wraps addEventListener to capture keypress UI events
-     * @returns {Function}
-     * @private
-     */
+   * Wraps addEventListener to capture keypress UI events
+   * @returns {Function}
+   * @private
+   */
   _keypressEventHandler: function() {
     var self = this,
       debounceDuration = 1000; // milliseconds
@@ -912,11 +912,11 @@ Raven.prototype = {
   },
 
   /**
-     * Captures a breadcrumb of type "navigation", normalizing input URLs
-     * @param to the originating URL
-     * @param from the target URL
-     * @private
-     */
+   * Captures a breadcrumb of type "navigation", normalizing input URLs
+   * @param to the originating URL
+   * @param from the target URL
+   * @private
+   */
   _captureUrlChange: function(from, to) {
     var parsedLoc = parseUrl(this._location.href);
     var parsedTo = parseUrl(to);
@@ -963,9 +963,9 @@ Raven.prototype = {
   },
 
   /**
-     * Wrap timer functions and event targets to catch errors and provide
-     * better metadata.
-     */
+   * Wrap timer functions and event targets to catch errors and provide
+   * better metadata.
+   */
   _instrumentTryCatch: function() {
     var self = this;
 
@@ -1129,14 +1129,14 @@ Raven.prototype = {
   },
 
   /**
-     * Instrument browser built-ins w/ breadcrumb capturing
-     *  - XMLHttpRequests
-     *  - DOM interactions (click/typing)
-     *  - window.location changes
-     *  - console
-     *
-     * Can be disabled or individually configured via the `autoBreadcrumbs` config option
-     */
+   * Instrument browser built-ins w/ breadcrumb capturing
+   *  - XMLHttpRequests
+   *  - DOM interactions (click/typing)
+   *  - window.location changes
+   *  - console
+   *
+   * Can be disabled or individually configured via the `autoBreadcrumbs` config option
+   */
   _instrumentBreadcrumbs: function() {
     var self = this;
     var autoBreadcrumbs = this._globalOptions.autoBreadcrumbs;
@@ -1583,8 +1583,8 @@ Raven.prototype = {
   },
 
   /**
-     * Truncate breadcrumb values (right now just URLs)
-     */
+   * Truncate breadcrumb values (right now just URLs)
+   */
   _trimBreadcrumbs: function(breadcrumbs) {
     // known breadcrumb properties with urls
     // TODO: also consider arbitrary prop values that start with (https?)?://
@@ -1646,14 +1646,14 @@ Raven.prototype = {
   },
 
   /**
-     * Returns true if the in-process data payload matches the signature
-     * of the previously-sent data
-     *
-     * NOTE: This has to be done at this level because TraceKit can generate
-     *       data from window.onerror WITHOUT an exception object (IE8, IE9,
-     *       other old browsers). This can take the form of an "exception"
-     *       data object with a single frame (derived from the onerror args).
-     */
+   * Returns true if the in-process data payload matches the signature
+   * of the previously-sent data
+   *
+   * NOTE: This has to be done at this level because TraceKit can generate
+   *       data from window.onerror WITHOUT an exception object (IE8, IE9,
+   *       other old browsers). This can take the form of an "exception"
+   *       data object with a single frame (derived from the onerror args).
+   */
   _isRepeatData: function(current) {
     var last = this._lastData;
 
@@ -1882,51 +1882,22 @@ Raven.prototype = {
   },
 
   _makeRequest: function(opts) {
-    var request = _window.XMLHttpRequest && new _window.XMLHttpRequest();
-    if (!request) return;
-
-    // if browser doesn't support CORS (e.g. IE7), we are out of luck
-    var hasCORS = 'withCredentials' in request || typeof XDomainRequest !== 'undefined';
-
-    if (!hasCORS) return;
-
     var url = opts.url;
 
-    if ('withCredentials' in request) {
-      request.onreadystatechange = function() {
-        if (request.readyState !== 4) {
-          return;
-        } else if (request.status === 200) {
-          opts.onSuccess && opts.onSuccess();
-        } else if (opts.onError) {
-          var err = new Error('Sentry error code: ' + request.status);
-          err.request = request;
-          opts.onError(err);
-        }
-      };
-    } else {
-      request = new XDomainRequest();
-      // xdomainrequest cannot go http -> https (or vice versa),
-      // so always use protocol relative
-      url = url.replace(/^https?:/, '');
-
-      // onreadystatechange not supported by XDomainRequest
-      if (opts.onSuccess) {
-        request.onload = opts.onSuccess;
-      }
-      if (opts.onError) {
-        request.onerror = function() {
-          var err = new Error('Sentry error code: XDomainRequest');
-          err.request = request;
-          opts.onError(err);
-        };
-      }
-    }
-
-    // NOTE: auth is intentionally sent as part of query string (NOT as custom
-    //       HTTP header) so as to avoid preflight CORS requests
-    request.open('POST', url + '?' + urlencode(opts.auth));
-    request.send(stringify(opts.data));
+    /* eslint-disable dot-notation */
+    fetch(url + '?' + urlencode(opts.auth), {
+      method: 'POST',
+      body: stringify(opts.data)
+    })
+      .then(function(response) {
+        opts.onSuccess && opts.onSuccess();
+      })
+      .catch(function(response) {
+        var err = new Error('Sentry error code: ' + response.status);
+        err.response = response;
+        opts.onError(err);
+      });
+    /* eslint-enable dot-notation */
   },
 
   _logDebug: function(level) {

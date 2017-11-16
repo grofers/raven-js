@@ -10,6 +10,11 @@
 
 [![Sauce Test Status](https://saucelabs.com/browser-matrix/sentryio.svg)](https://saucelabs.com/u/sentryio)
 
+## Reason for forking repository
+
+* Raven JS uses XHR API's for pushing errors to sentry. Since service workers doesn't have an access to XHR APIs, therefore it cannot communicate with an outside world. We have modified makeRequest method so that we can use it with service workers.
+
+
 ## Requirements
 
 The latest version of Raven.js is guaranteed to work with [hosted Sentry](https://sentry.io).
