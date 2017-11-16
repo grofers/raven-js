@@ -98,5 +98,8 @@
       "path": "./dist/raven.min.js",
       "maxSize": "10 kB"
     }
-  ]
+  ],
+  "dependencies": {
+    "whatwg-fetch": "^2.0.3"
+  }
 }

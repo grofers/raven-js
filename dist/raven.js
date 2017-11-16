@@ -1,4 +1,4 @@
-/*! Raven.js 3.20.0 (e6baafa) | github.com/getsentry/raven-js */
+/*! Raven.js 3.20.0 (c54bf6f) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1947,51 +1947,22 @@ Raven.prototype = {
   },
 
   _makeRequest: function(opts) {
-    var request = _window.XMLHttpRequest && new _window.XMLHttpRequest();
-    if (!request) return;
-
-    // if browser doesn't support CORS (e.g. IE7), we are out of luck
-    var hasCORS = 'withCredentials' in request || typeof XDomainRequest !== 'undefined';
-
-    if (!hasCORS) return;
-
     var url = opts.url;
 
-    if ('withCredentials' in request) {
-      request.onreadystatechange = function() {
-        if (request.readyState !== 4) {
-          return;
-        } else if (request.status === 200) {
-          opts.onSuccess && opts.onSuccess();
-        } else if (opts.onError) {
-          var err = new Error('Sentry error code: ' + request.status);
-          err.request = request;
-          opts.onError(err);
-        }
-      };
-    } else {
-      request = new XDomainRequest();
-      // xdomainrequest cannot go http -> https (or vice versa),
-      // so always use protocol relative
-      url = url.replace(/^https?:/, '');
-
-      // onreadystatechange not supported by XDomainRequest
-      if (opts.onSuccess) {
-        request.onload = opts.onSuccess;
-      }
-      if (opts.onError) {
-        request.onerror = function() {
-          var err = new Error('Sentry error code: XDomainRequest');
-          err.request = request;
-          opts.onError(err);
-        };
-      }
-    }
-
-    // NOTE: auth is intentionally sent as part of query string (NOT as custom
-    //       HTTP header) so as to avoid preflight CORS requests
-    request.open('POST', url + '?' + urlencode(opts.auth));
-    request.send(stringify(opts.data));
+    /* eslint-disable dot-notation */
+    fetch(url + '?' + urlencode(opts.auth), {
+      method: 'POST',
+      body: stringify(opts.data)
+    })
+      .then(function(response) {
+        opts.onSuccess && opts.onSuccess();
+      })
+      .catch(function(response) {
+        var err = new Error('Sentry error code: ' + response.status);
+        err.response = response;
+        opts.onError(err);
+      });
+    /* eslint-enable dot-notation */
   },
 
   _logDebug: function(level) {
