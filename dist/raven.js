@@ -1,4 +1,4 @@
-/*! Raven.js 3.20.0 (e6baafa) | github.com/getsentry/raven-js */
+/*! Raven.js 3.20.0 (d3226ea) | github.com/getsentry/raven-js */
 
 /*
  * Includes TraceKit
@@ -1946,7 +1946,36 @@ Raven.prototype = {
     });
   },
 
+  /**
+   * @param {string} opts.url
+   * @param {Object} opts.auth
+   * @param {*} opts.data
+   * @param {Object} opts.options
+   * @callback opts.onSuccess
+   * @callback opts.onError
+   * @private
+   */
   _makeRequest: function(opts) {
+    // NOTE: auth is intentionally sent as part of query string (NOT as custom
+    //       HTTP header) so as to avoid preflight CORS requests
+    var url = opts.url + '?' + urlencode(opts.auth);
+
+    // https://github.com/Modernizr/Modernizr/blob/d5f881a4de0d5fc1af85921ce9c7dc3919c6d335/feature-detects/network/fetch.js
+    if ('fetch' in _window) {
+        return _window.fetch(url, {
+          method: 'POST',
+          body: stringify(opts.data)
+        }).then(function (response) {
+          if (!response.ok) {
+            return opts.onError && opts.onError(new Error('Sentry error code: ' + response.status))
+          }
+
+          opts.onSuccess && opts.onSuccess();
+        })["catch"](function () {
+          opts.onError && opts.onError(new Error('Sentry error code: network unavailable'));
+        })
+    }
+
     var request = _window.XMLHttpRequest && new _window.XMLHttpRequest();
     if (!request) return;
 
@@ -1954,8 +1983,6 @@ Raven.prototype = {
     var hasCORS = 'withCredentials' in request || typeof XDomainRequest !== 'undefined';
 
     if (!hasCORS) return;
-
-    var url = opts.url;
 
     if ('withCredentials' in request) {
       request.onreadystatechange = function() {
@@ -1988,9 +2015,7 @@ Raven.prototype = {
       }
     }
 
-    // NOTE: auth is intentionally sent as part of query string (NOT as custom
-    //       HTTP header) so as to avoid preflight CORS requests
-    request.open('POST', url + '?' + urlencode(opts.auth));
+    request.open('POST', url);
     request.send(stringify(opts.data));
   },
 
